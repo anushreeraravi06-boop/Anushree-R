@@ -81,7 +81,7 @@ small{opacity:.7}
 
 <body>
 
-<!-- ENABLE -->
+<!-- ENABLE SCREEN -->
 <div id="enableScreen">
   <div id="enableBox">
     <h2>Enable Safety System</h2>
@@ -110,28 +110,22 @@ small{opacity:.7}
 
 <div class="step">
   <span class="badge">STEP 3</span>
-  <h3>Share Live Location</h3>
-  <button class="secondary" onclick="shareLocation()">📍 Share Location</button>
+  <h3>Trusted Contact</h3>
+  <input id="contactName" placeholder="Contact Name">
+  <input id="contactPhone" placeholder="Phone (with country code)">
+  <button class="secondary" onclick="saveContact()">💾 Save as Primary Contact</button>
+  <div id="contactList"><small>No contact saved</small></div>
 </div>
 
 <div class="step">
   <span class="badge">STEP 4</span>
-  <h3>Trusted Contacts (Save)</h3>
-  <input id="contactName" placeholder="Contact Name">
-  <input id="contactPhone" placeholder="Phone (with country code)">
-  <button class="secondary" onclick="saveContact()">💾 Save Contact</button>
-  <div id="contactList"><small>No contacts saved</small></div>
-</div>
-
-<div class="step">
-  <span class="badge">STEP 5</span>
   <h3>Fake Call</h3>
   <button class="secondary" onclick="fakeCall()">📞 Fake Incoming Call</button>
 </div>
 
 <div class="step">
-  <span class="badge">STEP 6</span>
-  <h3>Helplines</h3>
+  <span class="badge">STEP 5</span>
+  <h3>Emergency Helplines</h3>
   <a href="tel:112"><button class="primary">🚔 Police 112</button></a><br><br>
   <a href="tel:181"><button class="secondary">👩 Women Helpline 181</button></a>
 </div>
@@ -142,7 +136,7 @@ small{opacity:.7}
 <script>
 let audioCtx, osc;
 let lastShake = 0;
-const CONTACT_KEY = "she_shield_contacts";
+const CONTACT_KEY = "she_shield_primary_contact";
 
 /* ENABLE */
 function enableSystem(){
@@ -150,7 +144,7 @@ function enableSystem(){
   audioCtx = new (window.AudioContext||webkitAudioContext)();
   audioCtx.resume();
   initShake();
-  loadContacts();
+  loadContact();
   setStatus("System enabled");
 }
 
@@ -176,41 +170,37 @@ function flashScreen(){
   },300);
 }
 
-/* SAVE CONTACT */
+/* SAVE PRIMARY CONTACT */
 function saveContact(){
   const name=document.getElementById("contactName").value.trim();
   const phone=document.getElementById("contactPhone").value.trim();
   if(!name||!phone){alert("Enter name and phone");return;}
-  const list=getContacts();
-  list.push({name,phone});
-  localStorage.setItem(CONTACT_KEY,JSON.stringify(list));
+  localStorage.setItem(CONTACT_KEY,JSON.stringify({name,phone}));
+  loadContact();
   document.getElementById("contactName").value="";
   document.getElementById("contactPhone").value="";
-  loadContacts();
 }
 
-/* LOAD CONTACTS */
-function getContacts(){
-  return JSON.parse(localStorage.getItem(CONTACT_KEY)||"[]");
-}
-function loadContacts(){
-  const list=getContacts();
+/* LOAD CONTACT */
+function loadContact(){
+  const c=JSON.parse(localStorage.getItem(CONTACT_KEY)||"null");
   const div=document.getElementById("contactList");
-  if(!list.length){div.innerHTML="<small>No contacts saved</small>";return;}
-  div.innerHTML=list.map(c=>`<small>• ${c.name} (${c.phone})</small>`).join("<br>");
+  if(!c){div.innerHTML="<small>No contact saved</small>";return;}
+  div.innerHTML=`<small>Primary Contact: ${c.name} (${c.phone})</small>`;
 }
 
-/* SHARE LOCATION TO CONTACTS */
+/* SEND SOS MESSAGE (PRIMARY CONTACT ONLY) */
 function sendSOSMessage(lat,lon){
-  const contacts=getContacts();
-  if(!contacts.length){alert("No trusted contacts saved");return;}
-  const msg=`I am in danger. My location: https://maps.google.com/?q=${lat},${lon}`;
-  contacts.forEach(c=>{
-    window.open(`https://wa.me/${c.phone}?text=${encodeURIComponent(msg)}`);
-  });
+  const c=JSON.parse(localStorage.getItem(CONTACT_KEY)||"null");
+  if(!c){alert("No trusted contact saved");return;}
+  const msg=
+    `I am in danger. Please help me immediately.\n`+
+    `My location: https://maps.google.com/?q=${lat},${lon}`;
+  const url=`https://wa.me/${c.phone}?text=${encodeURIComponent(msg)}`;
+  window.open(url,"_blank");
 }
 
-/* SOS */
+/* EMERGENCY SOS */
 function emergencySOS(){
   startSiren();
   navigator.geolocation.getCurrentPosition(pos=>{
@@ -219,11 +209,16 @@ function emergencySOS(){
   setStatus("Emergency SOS triggered");
 }
 
-/* FAKE CALL */
+/* FAKE CALL – STRICT MALE VOICE */
 function fakeCall(){
-  const text="Listen carefully. Where are you right now? If you do not respond immediately, I will contact the police.";
+  const text=
+    "Listen carefully. Where are you right now? "+
+    "You were supposed to be home already. "+
+    "If you do not respond immediately, I will contact the police. "+
+    "Your father is extremely worried.";
   const u=new SpeechSynthesisUtterance(text);
-  u.pitch=0.8;u.rate=0.9;u.lang="en-IN";
+  u.lang="en-IN";u.rate=0.9;u.pitch=0.8;
+  speechSynthesis.cancel();
   speechSynthesis.speak(u);
 }
 
