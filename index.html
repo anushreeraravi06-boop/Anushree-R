@@ -68,6 +68,15 @@ small{opacity:.7}
   pointer-events:none;
   z-index:9998;
 }
+.badge{
+  display:inline-block;
+  background:#f4a261;
+  color:white;
+  padding:2px 8px;
+  border-radius:8px;
+  font-size:12px;
+  margin-bottom:6px;
+}
 </style>
 </head>
 
@@ -87,34 +96,68 @@ small{opacity:.7}
 <div class="container">
 <h1>She-Shield</h1>
 
+<!-- STEP 1 -->
 <div class="step">
-  <h3>STEP 1 – Siren Alert</h3>
+  <span class="badge">STEP 1</span>
+  <h3>Siren Alert</h3>
   <button class="primary" onclick="startSiren()">🔊 Start Siren</button>
   <button class="muted" onclick="stopSiren()">Stop Siren</button>
 </div>
 
+<!-- STEP 2 -->
 <div class="step">
-  <h3>STEP 2 – Emergency SOS</h3>
+  <span class="badge">STEP 2</span>
+  <h3>Emergency SOS</h3>
   <button class="primary" onclick="emergencySOS()">🚨 Emergency SOS</button>
 </div>
 
+<!-- STEP 3 -->
 <div class="step">
-  <h3>STEP 3 – Share Live Location</h3>
+  <span class="badge">STEP 3</span>
+  <h3>Share Live Location</h3>
   <button class="secondary" onclick="shareLocation()">📍 Share Location (WhatsApp)</button>
 </div>
 
+<!-- STEP 4 -->
 <div class="step">
-  <h3>STEP 4 – Voice SOS</h3>
+  <span class="badge">STEP 4</span>
+  <h3>Voice SOS</h3>
   <button class="secondary" onclick="startVoice()">🎙️ Say “HELP”</button>
 </div>
 
+<!-- STEP 5 -->
 <div class="step">
-  <h3>STEP 5 – Fake Call (Strict)</h3>
+  <span class="badge">STEP 5</span>
+  <h3>Fake Call (Strict)</h3>
   <button class="secondary" onclick="fakeCall()">📞 Fake Incoming Call</button>
 </div>
 
+<!-- STEP 6 – COUNTDOWN AUTO SOS -->
 <div class="step">
-  <h3>STEP 6 – Emergency Helplines</h3>
+  <span class="badge">STEP 6</span>
+  <h3>Auto SOS Countdown</h3>
+  <p><small>If not cancelled, SOS will trigger automatically.</small></p>
+  <button class="primary" onclick="startCountdown()">⏳ Start 10-Second Countdown</button>
+  <button class="muted" onclick="cancelCountdown()">Cancel Countdown</button>
+  <p id="countdownText"><small>Status: Not started</small></p>
+</div>
+
+<!-- STEP 7 – TRUSTED CONTACT PREVIEW -->
+<div class="step">
+  <span class="badge">STEP 7</span>
+  <h3>Trusted Contacts</h3>
+  <p><small>SOS will be shared with:</small></p>
+  <ul>
+    <li>👩 Mother</li>
+    <li>👭 Close Friend</li>
+    <li>🚔 Police (112)</li>
+  </ul>
+</div>
+
+<!-- STEP 8 -->
+<div class="step">
+  <span class="badge">STEP 8</span>
+  <h3>Emergency Helplines</h3>
   <a href="tel:112"><button class="primary">🚔 Police 112</button></a><br><br>
   <a href="tel:181"><button class="secondary">👩 Women Helpline 181</button></a><br><br>
   <a href="tel:108"><button class="muted">🚑 Ambulance 108</button></a>
@@ -126,6 +169,8 @@ small{opacity:.7}
 <script>
 let audioCtx, osc, recognition;
 let lastShake = 0;
+let countdownTimer = null;
+let countdown = 10;
 
 /* ENABLE */
 function enableSystem(){
@@ -193,7 +238,7 @@ function fakeCall(){
   const text =
     "Listen carefully. Where are you right now? " +
     "You were supposed to be home already. " +
-    "If you do not answer immediately, I will contact the police. " +
+    "If you do not respond immediately, I will contact the police. " +
     "Your father is extremely worried.";
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -203,18 +248,12 @@ function fakeCall(){
   utter.volume=1;
 
   const voices=speechSynthesis.getVoices();
-  const male =
-    voices.find(v=>v.name.toLowerCase().includes("male")) ||
-    voices.find(v=>v.name.toLowerCase().includes("google")) ||
-    voices.find(v=>v.lang==="en-IN") ||
-    voices[0];
-
-  if(male) utter.voice=male;
+  const male=voices.find(v=>v.lang==="en-IN")||voices[0];
+  utter.voice=male;
 
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
-
-  setStatus("Fake call: strict male voice playing");
+  setStatus("Fake call playing");
 }
 
 /* SHAKE TO SOS */
@@ -230,6 +269,27 @@ function initShake(){
       emergencySOS();
     }
   });
+}
+
+/* COUNTDOWN AUTO SOS */
+function startCountdown(){
+  countdown=10;
+  document.getElementById("countdownText").innerHTML="<small>Countdown: 10</small>";
+  countdownTimer=setInterval(()=>{
+    countdown--;
+    document.getElementById("countdownText").innerHTML="<small>Countdown: "+countdown+"</small>";
+    if(countdown<=0){
+      clearInterval(countdownTimer);
+      emergencySOS();
+      document.getElementById("countdownText").innerHTML="<small>SOS Triggered Automatically</small>";
+    }
+  },1000);
+  setStatus("Countdown started");
+}
+function cancelCountdown(){
+  clearInterval(countdownTimer);
+  document.getElementById("countdownText").innerHTML="<small>Countdown cancelled</small>";
+  setStatus("Countdown cancelled");
 }
 
 /* STATUS */
