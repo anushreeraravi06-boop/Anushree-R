@@ -17,21 +17,15 @@ body{
   margin:auto;
   padding:16px;
 }
-h1{
-  text-align:center;
-  color:#e07a5f;
-}
+h1{text-align:center;color:#e07a5f}
 .step{
   background:#fffaf3;
   padding:14px;
   border-radius:14px;
   margin-bottom:14px;
-  box-shadow:0 6px 16px rgba(0,0,0,0.08);
+  box-shadow:0 6px 16px rgba(0,0,0,.08)
 }
-.step h3{
-  margin:0 0 8px;
-  color:#e07a5f;
-}
+.step h3{margin:0 0 8px;color:#e07a5f}
 button{
   width:100%;
   padding:14px;
@@ -39,50 +33,55 @@ button{
   border-radius:12px;
   font-size:16px;
   font-weight:bold;
-  cursor:pointer;
+  cursor:pointer
 }
-.primary{background:#e07a5f;color:white;}
-.secondary{background:#f4a261;color:white;}
-.muted{background:#eee;}
+.primary{background:#e07a5f;color:white}
+.secondary{background:#f4a261;color:white}
+.muted{background:#eee}
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:8px;
+  border:1px solid #ccc
+}
 small{opacity:.7}
-
+.badge{
+  background:#f4a261;
+  color:white;
+  padding:2px 8px;
+  border-radius:8px;
+  font-size:12px;
+  display:inline-block;
+  margin-bottom:6px
+}
 #enableScreen{
   position:fixed;inset:0;
   background:#000000c0;
   display:flex;
   align-items:center;
   justify-content:center;
-  z-index:9999;
+  z-index:9999
 }
 #enableBox{
   background:#fffaf3;
   padding:20px;
   border-radius:14px;
-  text-align:center;
+  text-align:center
 }
 #flash{
-  position:fixed;
-  inset:0;
+  position:fixed;inset:0;
   background:white;
   opacity:0;
   pointer-events:none;
-  z-index:9998;
-}
-.badge{
-  display:inline-block;
-  background:#f4a261;
-  color:white;
-  padding:2px 8px;
-  border-radius:8px;
-  font-size:12px;
-  margin-bottom:6px;
+  z-index:9998
 }
 </style>
 </head>
 
 <body>
 
-<!-- ENABLE SCREEN -->
+<!-- ENABLE -->
 <div id="enableScreen">
   <div id="enableBox">
     <h2>Enable Safety System</h2>
@@ -96,7 +95,6 @@ small{opacity:.7}
 <div class="container">
 <h1>She-Shield</h1>
 
-<!-- STEP 1 -->
 <div class="step">
   <span class="badge">STEP 1</span>
   <h3>Siren Alert</h3>
@@ -104,73 +102,47 @@ small{opacity:.7}
   <button class="muted" onclick="stopSiren()">Stop Siren</button>
 </div>
 
-<!-- STEP 2 -->
 <div class="step">
   <span class="badge">STEP 2</span>
   <h3>Emergency SOS</h3>
   <button class="primary" onclick="emergencySOS()">🚨 Emergency SOS</button>
 </div>
 
-<!-- STEP 3 -->
 <div class="step">
   <span class="badge">STEP 3</span>
   <h3>Share Live Location</h3>
-  <button class="secondary" onclick="shareLocation()">📍 Share Location (WhatsApp)</button>
+  <button class="secondary" onclick="shareLocation()">📍 Share Location</button>
 </div>
 
-<!-- STEP 4 -->
 <div class="step">
   <span class="badge">STEP 4</span>
-  <h3>Voice SOS</h3>
-  <button class="secondary" onclick="startVoice()">🎙️ Say “HELP”</button>
+  <h3>Trusted Contacts (Save)</h3>
+  <input id="contactName" placeholder="Contact Name">
+  <input id="contactPhone" placeholder="Phone (with country code)">
+  <button class="secondary" onclick="saveContact()">💾 Save Contact</button>
+  <div id="contactList"><small>No contacts saved</small></div>
 </div>
 
-<!-- STEP 5 -->
 <div class="step">
   <span class="badge">STEP 5</span>
-  <h3>Fake Call (Strict)</h3>
+  <h3>Fake Call</h3>
   <button class="secondary" onclick="fakeCall()">📞 Fake Incoming Call</button>
 </div>
 
-<!-- STEP 6 – COUNTDOWN AUTO SOS -->
 <div class="step">
   <span class="badge">STEP 6</span>
-  <h3>Auto SOS Countdown</h3>
-  <p><small>If not cancelled, SOS will trigger automatically.</small></p>
-  <button class="primary" onclick="startCountdown()">⏳ Start 10-Second Countdown</button>
-  <button class="muted" onclick="cancelCountdown()">Cancel Countdown</button>
-  <p id="countdownText"><small>Status: Not started</small></p>
-</div>
-
-<!-- STEP 7 – TRUSTED CONTACT PREVIEW -->
-<div class="step">
-  <span class="badge">STEP 7</span>
-  <h3>Trusted Contacts</h3>
-  <p><small>SOS will be shared with:</small></p>
-  <ul>
-    <li>👩 Mother</li>
-    <li>👭 Close Friend</li>
-    <li>🚔 Police (112)</li>
-  </ul>
-</div>
-
-<!-- STEP 8 -->
-<div class="step">
-  <span class="badge">STEP 8</span>
-  <h3>Emergency Helplines</h3>
+  <h3>Helplines</h3>
   <a href="tel:112"><button class="primary">🚔 Police 112</button></a><br><br>
-  <a href="tel:181"><button class="secondary">👩 Women Helpline 181</button></a><br><br>
-  <a href="tel:108"><button class="muted">🚑 Ambulance 108</button></a>
+  <a href="tel:181"><button class="secondary">👩 Women Helpline 181</button></a>
 </div>
 
 <div id="status"><small>Status: Ready</small></div>
 </div>
 
 <script>
-let audioCtx, osc, recognition;
+let audioCtx, osc;
 let lastShake = 0;
-let countdownTimer = null;
-let countdown = 10;
+const CONTACT_KEY = "she_shield_contacts";
 
 /* ENABLE */
 function enableSystem(){
@@ -178,6 +150,7 @@ function enableSystem(){
   audioCtx = new (window.AudioContext||webkitAudioContext)();
   audioCtx.resume();
   initShake();
+  loadContacts();
   setStatus("System enabled");
 }
 
@@ -203,62 +176,59 @@ function flashScreen(){
   },300);
 }
 
-/* SOS */
-function emergencySOS(){
-  startSiren();
-  shareLocation();
-  setStatus("Emergency SOS triggered");
+/* SAVE CONTACT */
+function saveContact(){
+  const name=document.getElementById("contactName").value.trim();
+  const phone=document.getElementById("contactPhone").value.trim();
+  if(!name||!phone){alert("Enter name and phone");return;}
+  const list=getContacts();
+  list.push({name,phone});
+  localStorage.setItem(CONTACT_KEY,JSON.stringify(list));
+  document.getElementById("contactName").value="";
+  document.getElementById("contactPhone").value="";
+  loadContacts();
 }
 
-/* LOCATION */
-function shareLocation(){
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const msg=`I am in danger. My location: https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
-    window.open("https://wa.me/?text="+encodeURIComponent(msg));
+/* LOAD CONTACTS */
+function getContacts(){
+  return JSON.parse(localStorage.getItem(CONTACT_KEY)||"[]");
+}
+function loadContacts(){
+  const list=getContacts();
+  const div=document.getElementById("contactList");
+  if(!list.length){div.innerHTML="<small>No contacts saved</small>";return;}
+  div.innerHTML=list.map(c=>`<small>• ${c.name} (${c.phone})</small>`).join("<br>");
+}
+
+/* SHARE LOCATION TO CONTACTS */
+function sendSOSMessage(lat,lon){
+  const contacts=getContacts();
+  if(!contacts.length){alert("No trusted contacts saved");return;}
+  const msg=`I am in danger. My location: https://maps.google.com/?q=${lat},${lon}`;
+  contacts.forEach(c=>{
+    window.open(`https://wa.me/${c.phone}?text=${encodeURIComponent(msg)}`);
   });
 }
 
-/* VOICE SOS */
-function startVoice(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){alert("Voice not supported");return;}
-  recognition=new SR();
-  recognition.onresult=e=>{
-    const text=e.results[0][0].transcript.toLowerCase();
-    if(text.includes("help")||text.includes("sos")){
-      emergencySOS();
-    }
-  };
-  recognition.start();
-  setStatus("Listening… say HELP");
+/* SOS */
+function emergencySOS(){
+  startSiren();
+  navigator.geolocation.getCurrentPosition(pos=>{
+    sendSOSMessage(pos.coords.latitude,pos.coords.longitude);
+  });
+  setStatus("Emergency SOS triggered");
 }
 
-/* FAKE CALL – STRICT MALE VOICE */
+/* FAKE CALL */
 function fakeCall(){
-  const text =
-    "Listen carefully. Where are you right now? " +
-    "You were supposed to be home already. " +
-    "If you do not respond immediately, I will contact the police. " +
-    "Your father is extremely worried.";
-
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang="en-IN";
-  utter.rate=0.9;
-  utter.pitch=0.8;
-  utter.volume=1;
-
-  const voices=speechSynthesis.getVoices();
-  const male=voices.find(v=>v.lang==="en-IN")||voices[0];
-  utter.voice=male;
-
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utter);
-  setStatus("Fake call playing");
+  const text="Listen carefully. Where are you right now? If you do not respond immediately, I will contact the police.";
+  const u=new SpeechSynthesisUtterance(text);
+  u.pitch=0.8;u.rate=0.9;u.lang="en-IN";
+  speechSynthesis.speak(u);
 }
 
 /* SHAKE TO SOS */
 function initShake(){
-  if(!window.DeviceMotionEvent) return;
   window.addEventListener("devicemotion",e=>{
     const a=e.accelerationIncludingGravity;
     if(!a) return;
@@ -269,27 +239,6 @@ function initShake(){
       emergencySOS();
     }
   });
-}
-
-/* COUNTDOWN AUTO SOS */
-function startCountdown(){
-  countdown=10;
-  document.getElementById("countdownText").innerHTML="<small>Countdown: 10</small>";
-  countdownTimer=setInterval(()=>{
-    countdown--;
-    document.getElementById("countdownText").innerHTML="<small>Countdown: "+countdown+"</small>";
-    if(countdown<=0){
-      clearInterval(countdownTimer);
-      emergencySOS();
-      document.getElementById("countdownText").innerHTML="<small>SOS Triggered Automatically</small>";
-    }
-  },1000);
-  setStatus("Countdown started");
-}
-function cancelCountdown(){
-  clearInterval(countdownTimer);
-  document.getElementById("countdownText").innerHTML="<small>Countdown cancelled</small>";
-  setStatus("Countdown cancelled");
 }
 
 /* STATUS */
