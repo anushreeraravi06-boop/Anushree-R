@@ -85,7 +85,7 @@ small{opacity:.7}
 <div id="enableScreen">
   <div id="enableBox">
     <h2>Enable Safety System</h2>
-    <p><small>Required for sound, motion & location</small></p>
+    <p><small>Required for sound, mic, motion & location</small></p>
     <button class="primary" onclick="enableSystem()">Enable</button>
   </div>
 </div>
@@ -95,6 +95,7 @@ small{opacity:.7}
 <div class="container">
 <h1>She-Shield</h1>
 
+<!-- STEP 1 -->
 <div class="step">
   <span class="badge">STEP 1</span>
   <h3>Siren Alert</h3>
@@ -102,14 +103,23 @@ small{opacity:.7}
   <button class="muted" onclick="stopSiren()">Stop Siren</button>
 </div>
 
+<!-- STEP 2 -->
 <div class="step">
   <span class="badge">STEP 2</span>
   <h3>Emergency SOS</h3>
   <button class="primary" onclick="emergencySOS()">🚨 Emergency SOS</button>
 </div>
 
+<!-- STEP 3 -->
 <div class="step">
   <span class="badge">STEP 3</span>
+  <h3>Live Location</h3>
+  <button class="secondary" onclick="shareLiveLocation()">📍 Share Live Location</button>
+</div>
+
+<!-- STEP 4 -->
+<div class="step">
+  <span class="badge">STEP 4</span>
   <h3>Trusted Contact</h3>
   <input id="contactName" placeholder="Contact Name">
   <input id="contactPhone" placeholder="Phone (with country code)">
@@ -117,14 +127,32 @@ small{opacity:.7}
   <div id="contactList"><small>No contact saved</small></div>
 </div>
 
+<!-- STEP 5 -->
 <div class="step">
-  <span class="badge">STEP 4</span>
+  <span class="badge">STEP 5</span>
+  <h3>Voice SOS</h3>
+  <button class="secondary" onclick="startVoice()">🎙️ Say “HELP”</button>
+</div>
+
+<!-- STEP 6 -->
+<div class="step">
+  <span class="badge">STEP 6</span>
+  <h3>Auto SOS Countdown</h3>
+  <button class="primary" onclick="startCountdown()">⏳ Start 10s Countdown</button>
+  <button class="muted" onclick="cancelCountdown()">Cancel</button>
+  <p id="countdownText"><small>Status: Not started</small></p>
+</div>
+
+<!-- STEP 7 -->
+<div class="step">
+  <span class="badge">STEP 7</span>
   <h3>Fake Call</h3>
   <button class="secondary" onclick="fakeCall()">📞 Fake Incoming Call</button>
 </div>
 
+<!-- STEP 8 -->
 <div class="step">
-  <span class="badge">STEP 5</span>
+  <span class="badge">STEP 8</span>
   <h3>Emergency Helplines</h3>
   <a href="tel:112"><button class="primary">🚔 Police 112</button></a><br><br>
   <a href="tel:181"><button class="secondary">👩 Women Helpline 181</button></a>
@@ -134,8 +162,10 @@ small{opacity:.7}
 </div>
 
 <script>
-let audioCtx, osc;
+let audioCtx, osc, recognition;
 let lastShake = 0;
+let countdownTimer = null;
+let countdown = 10;
 const CONTACT_KEY = "she_shield_primary_contact";
 
 /* ENABLE */
@@ -170,15 +200,15 @@ function flashScreen(){
   },300);
 }
 
-/* SAVE PRIMARY CONTACT */
+/* SAVE CONTACT */
 function saveContact(){
   const name=document.getElementById("contactName").value.trim();
   const phone=document.getElementById("contactPhone").value.trim();
   if(!name||!phone){alert("Enter name and phone");return;}
   localStorage.setItem(CONTACT_KEY,JSON.stringify({name,phone}));
-  loadContact();
   document.getElementById("contactName").value="";
   document.getElementById("contactPhone").value="";
+  loadContact();
 }
 
 /* LOAD CONTACT */
@@ -189,14 +219,14 @@ function loadContact(){
   div.innerHTML=`<small>Primary Contact: ${c.name} (${c.phone})</small>`;
 }
 
-/* SEND SOS MESSAGE (PRIMARY CONTACT ONLY) */
+/* SEND SOS MESSAGE */
 function sendSOSMessage(lat,lon){
   const c=JSON.parse(localStorage.getItem(CONTACT_KEY)||"null");
   if(!c){alert("No trusted contact saved");return;}
-  const msg=
+  const msg =
     `I am in danger. Please help me immediately.\n`+
     `My location: https://maps.google.com/?q=${lat},${lon}`;
-  const url=`https://wa.me/${c.phone}?text=${encodeURIComponent(msg)}`;
+  const url = `https://wa.me/${c.phone}?text=${encodeURIComponent(msg)}`;
   window.open(url,"_blank");
 }
 
@@ -209,13 +239,37 @@ function emergencySOS(){
   setStatus("Emergency SOS triggered");
 }
 
+/* LIVE LOCATION ONLY */
+function shareLiveLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const msg =
+      `Sharing my live location:\n`+
+      `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+    window.open("https://wa.me/?text="+encodeURIComponent(msg),"_blank");
+  });
+}
+
+/* VOICE SOS */
+function startVoice(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){alert("Voice not supported");return;}
+  recognition = new SR();
+  recognition.lang="en-IN";
+  recognition.onresult=e=>{
+    const text=e.results[0][0].transcript.toLowerCase();
+    if(text.includes("help")||text.includes("sos")){
+      emergencySOS();
+    }
+  };
+  recognition.start();
+  setStatus("Listening… say HELP");
+}
+
 /* FAKE CALL – STRICT MALE VOICE */
 function fakeCall(){
-  const text=
+  const text =
     "Listen carefully. Where are you right now? "+
-    "You were supposed to be home already. "+
-    "If you do not respond immediately, I will contact the police. "+
-    "Your father is extremely worried.";
+    "If you do not respond immediately, I will contact the police.";
   const u=new SpeechSynthesisUtterance(text);
   u.lang="en-IN";u.rate=0.9;u.pitch=0.8;
   speechSynthesis.cancel();
@@ -234,6 +288,30 @@ function initShake(){
       emergencySOS();
     }
   });
+}
+
+/* COUNTDOWN AUTO SOS */
+function startCountdown(){
+  if(countdownTimer) return;
+  countdown = 10;
+  document.getElementById("countdownText").innerHTML="<small>Countdown: 10</small>";
+  countdownTimer = setInterval(()=>{
+    countdown--;
+    document.getElementById("countdownText").innerHTML="<small>Countdown: "+countdown+"</small>";
+    if(countdown<=0){
+      clearInterval(countdownTimer);
+      countdownTimer=null;
+      emergencySOS();
+      document.getElementById("countdownText").innerHTML="<small>SOS triggered automatically</small>";
+    }
+  },1000);
+  setStatus("Countdown started");
+}
+function cancelCountdown(){
+  clearInterval(countdownTimer);
+  countdownTimer=null;
+  document.getElementById("countdownText").innerHTML="<small>Countdown cancelled</small>";
+  setStatus("Countdown cancelled");
 }
 
 /* STATUS */
